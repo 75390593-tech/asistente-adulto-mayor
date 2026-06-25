@@ -3,6 +3,32 @@ const app = document.getElementById("app");
 const APP_NAME = "CuidApp Mayor";
 const APP_SUBTITLE = "Asistente virtual para adultos mayores";
 
+const DEFAULT_USERS = [
+  {
+    email: "adulto.mayor@test.com",
+    password: "123456",
+    role: "adulto"
+  },
+  {
+    email: "familiar.test@test.com",
+    password: "123456",
+    role: "cuidador"
+  }
+];
+
+function getRegisteredUsers() {
+  const savedUsers = localStorage.getItem("cuidAppMayorUsers");
+  return savedUsers ? JSON.parse(savedUsers) : [];
+}
+
+function saveRegisteredUsers(users) {
+  localStorage.setItem("cuidAppMayorUsers", JSON.stringify(users));
+}
+
+function getAllUsers() {
+  return [...DEFAULT_USERS, ...getRegisteredUsers()];
+}
+
 const TEAM_MEMBERS = [
   "EVELIN YADIRA SEGURA ROSALES",
   "GIANMARCO KEVIN MAMANI CHAMPI",
@@ -209,21 +235,30 @@ function renderLogin() {
   `;
 
   document.getElementById("loginForm").addEventListener("submit", function (event) {
-    event.preventDefault();
+  event.preventDefault();
 
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value.trim();
+  const email = document.getElementById("email").value.trim().toLowerCase();
+  const password = document.getElementById("password").value.trim();
 
-    if (!email || !password) {
-      alert("Debe ingresar correo y contraseña.");
-      return;
-    }
+  if (!email || !password) {
+    alert("Debe ingresar correo y contraseña.");
+    return;
+  }
 
-    state.currentUser = email;
-    state.currentRole = email.includes("familiar") ? "cuidador" : "adulto";
-    state.screen = "dashboard";
-    saveData();
-    renderApp();
+  const user = getAllUsers().find(
+    item => item.email.toLowerCase() === email && item.password === password
+  );
+
+  if (!user) {
+    alert("Correo o contraseña incorrectos. Use las credenciales de prueba o una cuenta registrada.");
+    return;
+  }
+
+  state.currentUser = user.email;
+  state.currentRole = user.role;
+  state.screen = "dashboard";
+  saveData();
+  renderApp();
   });
 }
 
@@ -275,9 +310,45 @@ function renderRegister() {
   `;
 
   document.getElementById("registerForm").addEventListener("submit", function (event) {
-    event.preventDefault();
-    alert("Cuenta registrada correctamente. Ahora puede iniciar sesión.");
-    renderLogin();
+  event.preventDefault();
+
+  const name = document.getElementById("regName").value.trim();
+  const email = document.getElementById("regEmail").value.trim().toLowerCase();
+  const phone = document.getElementById("regPhone").value.trim();
+  const role = document.getElementById("regRole").value;
+  const password = document.getElementById("regPassword").value.trim();
+
+  if (!name || !email || !phone || !role || !password) {
+    alert("Debe completar todos los campos obligatorios.");
+    return;
+  }
+
+  if (password.length < 6) {
+    alert("La contraseña debe tener como mínimo 6 caracteres.");
+    return;
+  }
+
+  const exists = getAllUsers().some(user => user.email.toLowerCase() === email);
+
+  if (exists) {
+    alert("El correo ingresado ya se encuentra registrado.");
+    return;
+  }
+
+  const registeredUsers = getRegisteredUsers();
+
+  registeredUsers.push({
+    name: name,
+    email: email,
+    phone: phone,
+    role: role,
+    password: password
+  });
+
+  saveRegisteredUsers(registeredUsers);
+
+  alert("Cuenta registrada correctamente. Ahora puede iniciar sesión.");
+  renderLogin();
   });
 }
 
